@@ -8,6 +8,7 @@ import (
 	"flag"
 	"io"
 	"path"
+	"path/filepath"
 	"strings"
 	"log"
 	"github.com/ascherkus/go-id3/src/id3"
@@ -32,12 +33,15 @@ type Config struct  {
 		Mount string
 	}
 
-	Music struct {
-		Folder []string
+	Music map[string] *struct {
+		Playlist string
+		Shuffle bool
+		Subdirs bool
+		Rootfolder string
 	}
 }
 
-func sdir(folder string, addfilechannel chan SongRecord) {
+func sdir(folder string, subdirs bool, addfilechannel chan SongRecord) {
 	searchdir, eopen := os.Open(folder)
 	if eopen != nil {
 		log.Println("Error opening " + folder + " : " + eopen.Error())
@@ -55,10 +59,10 @@ func sdir(folder string, addfilechannel chan SongRecord) {
 			continue
 		}
 
-		if homefiles[i].IsDir() {
+		if homefiles[i].IsDir() && subdirs {
 			ndir := folder+"/"+fname
 			fmt.Println("Searching " + ndir)
-			go sdir(ndir,addfilechannel)
+			go sdir(ndir,subdirs,addfilechannel)
 			continue
 		}
 
@@ -96,13 +100,17 @@ func main() {
 	}
 
 	log.Println(cfg.Server)
-	log.Println(cfg.Music)
 	
 	addfilechannel := make(chan SongRecord, 10)
 	defer close(addfilechannel)
 
-	for folderIdx :=  range(cfg.Music.Folder) {
-		go sdir(cfg.Music.Folder[folderIdx],addfilechannel)
+	for _, musicRec :=  range(cfg.Music) {
+		log.Println(*musicRec)
+
+		fext := filepath.Ext(musicRec.Playlist)
+		if fext == "" {
+			go sdir(musicRec.Playlist,musicRec.Subdirs, addfilechannel)
+		}
 	}
 
 	mountpoint := cfg.Server.Mount

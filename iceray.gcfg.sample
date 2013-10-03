@@ -6,7 +6,26 @@ user = source # source user name
 password = p # source password
 mount = /stream.mp3 # mountpoint
 
-# List music folders
-[music]
-folder = /home/jdarnold/Music/The Bongos
-folder = /home/jdarnold/Music/Richard Barone
+# List music sources
+
+[music "folder1"]
+# the playlist can be a fully qualified path, which is searched
+# for any MP3 files
+playlist = /home/jdarnold/Music/The Bongos
+subdirs = true # follow subdirectories?
+
+[music "folder2"]
+playlist = /home/jdarnold/Music/Richard Barone
+subdirs = false # default
+
+[music "playlist1"]
+# the playlist can be an XSPF playlist file
+playlist = /home/jdarnold/playlist/Friday Random 10 20130726.xspf
+shuffle = true # randomly play all the songs?
+rootFolder = /home/jdarnold/Music # needed if paths in playlist file are relative
+
+[music "playlist2"]
+# the playlist can be an m3u file
+playlist = /home/jdarnold/playlist/testing.m3u
+rootFolder = /home/jdarnold/Music # needed if paths in playlist file are relative
+shuffle = false # default
