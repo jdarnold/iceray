@@ -1,5 +1,8 @@
 iceray: iceray.go
 	go build
 
-instal : iceray
+dependencies:
+	go get
+
+install : iceray
 	go install
