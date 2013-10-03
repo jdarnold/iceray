@@ -25,8 +25,8 @@ var (
     hostname = flag.String("host", "amazingdev.com", "Vehement Flame Radio")
     port = flag.Uint("port", 8000, "shoutcast server source port")
     user = flag.String("user", "source", "source user name")
-    password = flag.String("password", "flamecast", "source password")
-    mount = flag.String("mountpoint", "/flame", "mountpoint")
+    password = flag.String("password", "", "source password")
+    mount = flag.String("mountpoint", "", "mountpoint")
 ) 
 
 func sdir(folder string, addfilechannel chan SongRecord) {
@@ -102,7 +102,6 @@ func main() {
 	defer s.Close()
 
 	// Create a channel where we can send the data
-	//
 	stream, err := s.Open()
 	if err != nil {
 		panic(err)
@@ -120,22 +119,24 @@ func main() {
 			continue
 		}
 		
+		// Read in MP3 tags
 		mp3tags := id3.Read(fd)
 
-		if ( mp3tags != nil ) {
-			mfile.artist = mp3tags.Artist
+		if ( mp3tags == nil ) {
+			log.Println("Problems getting MP3 tags for " + mfile.fullpath)
+			continue
 		}
 
-		if ( mp3tags != nil ) {
-			mfile.title = mp3tags.Name
-		}
+		mfile.artist = mp3tags.Artist
+		mfile.title = mp3tags.Name
 
-		fmt.Println("Playing " + mfile.title + " by " + mfile.artist )
+		track := mfile.title + " by " + mfile.artist
+		fmt.Println("Playing " + track)
 
 		fd.Seek(0,0)
-
 		
-		s.UpdateMetadata( "song", mfile.title + " by " + mfile.artist )
+		// add track to the stream
+		s.UpdateMetadata( "song", track )
 		
 		for {
 			// Read from file
