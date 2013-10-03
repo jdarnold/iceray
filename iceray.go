@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"flag"
 	"io"
 	"path"
@@ -82,11 +83,16 @@ func sdir(folder string, addfilechannel chan SongRecord) {
 }
 
 func main() {
-	var cfg Config
-	err := gcfg.ReadFileInto(&cfg,"iceray.gcfg")
+	usr, err := user.Current()
 	if err != nil {
-		panic("Config error: "+err.Error())
-		
+		log.Fatal( err )
+	}
+	configPath := usr.HomeDir + "/.iceray.gcfg"
+
+	var cfg Config
+	err = gcfg.ReadFileInto(&cfg,configPath)
+	if err != nil {
+		log.Fatal("Error opening config file: "+err.Error())
 	}
 
 	log.Println(cfg.Server)
@@ -130,7 +136,7 @@ func main() {
 	// Create a channel where we can send the data
 	stream, err := s.Open()
 	if err != nil {
-		panic("Error opening server " + cfg.Server.Hostname + " : " + err.Error())
+		log.Fatal("Error opening server " + cfg.Server.Hostname + " : " + err.Error())
 	}
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
