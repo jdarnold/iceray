@@ -2,6 +2,7 @@
 package main
 
 import (
+	"sync"
 	"fmt"
 	"os"
 	"os/user"
@@ -41,7 +42,9 @@ type Config struct  {
 	}
 }
 
-func sdir(folder string, subdirs bool, addfilechannel chan SongRecord) {
+func sdir(folder string, subdirs bool, addfilechannel chan SongRecord, w *sync.WaitGroup) {
+	defer w.Done()
+
 	searchdir, eopen := os.Open(folder)
 	if eopen != nil {
 		log.Println("Error opening " + folder + " : " + eopen.Error())
@@ -53,6 +56,7 @@ func sdir(folder string, subdirs bool, addfilechannel chan SongRecord) {
 		log.Println("Error reading " + folder + " : " + eopen.Error())
 		return
 	}
+
 	for i := range homefiles {
 		fname := homefiles[i].Name()
 		if fname[0] == '.' {
@@ -61,8 +65,8 @@ func sdir(folder string, subdirs bool, addfilechannel chan SongRecord) {
 
 		if homefiles[i].IsDir() && subdirs {
 			ndir := folder+"/"+fname
-			fmt.Println("Searching " + ndir)
-			go sdir(ndir,subdirs,addfilechannel)
+			w.Add(1)
+			go sdir(ndir,subdirs,addfilechannel,w)
 			continue
 		}
 
@@ -79,9 +83,7 @@ func sdir(folder string, subdirs bool, addfilechannel chan SongRecord) {
 		var sr SongRecord
 		sr.fullpath = folder+"/"+fname
 		sr.filetype = strings.TrimPrefix(fext,".")
-		sr.title = "Unknown"
-		sr.artist = "Unknown"
-		
+
 		addfilechannel <- sr
 	}
 }
@@ -99,27 +101,38 @@ func main() {
 		log.Fatal("Error opening config file: "+err.Error())
 	}
 
-	log.Println(cfg.Server)
-	
-	addfilechannel := make(chan SongRecord, 10)
-	defer close(addfilechannel)
+	addfilechannel := make(chan SongRecord, 100)
+
+	var w sync.WaitGroup
 
 	for _, musicRec :=  range(cfg.Music) {
-		log.Println(*musicRec)
-
-		fext := filepath.Ext(musicRec.Playlist)
-		if fext == "" {
-			go sdir(musicRec.Playlist,musicRec.Subdirs, addfilechannel)
+		fext := strings.ToLower(filepath.Ext(musicRec.Playlist))
+		if fext == ".xspf" {
+			// process XML playlist file
+		} else if fext == ".m3u" {
+			// process m3u playlist file
+		} else {
+			w.Add(1)
+			go sdir(musicRec.Playlist,musicRec.Subdirs, addfilechannel, &w)
 		}
 	}
 
+	w.Wait()
+	close(addfilechannel)
+	
+	var songs []SongRecord
+	
+	for mfile := range addfilechannel {
+		songs = append(songs,mfile)
+	}
+	
 	mountpoint := cfg.Server.Mount
 	if mountpoint[0] != '/' {
 		mountpoint = "/" + mountpoint
 	}
 
-	log.Println(cfg.Server)
-
+	log.Printf("Connecting to %s:%d",cfg.Server.Hostname, cfg.Server.Port)
+	
 	hostname := flag.String("host", cfg.Server.Hostname, "shoutcast server name")
 	port := flag.Uint("port", cfg.Server.Port, "shoutcast server source port")
 	user := flag.String("user", cfg.Server.User, "source user name")
@@ -149,10 +162,12 @@ func main() {
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
 	
-	for {
-		mfile := <- addfilechannel
+	log.Printf("Found %d songs", len(songs))
+	
+	for songIdx := range(songs) {
+		mfile := songs[songIdx]
+		
 		fd,err := os.Open(mfile.fullpath)
-		defer fd.Close()
 		
 		if err != nil {
 			log.Println("Problem opening: " + mfile.fullpath)
@@ -167,6 +182,16 @@ func main() {
 			continue
 		}
 
+		if mp3tags.Artist == "" {
+			log.Println("Artist tag missing for " + mfile.fullpath)
+			continue
+		}
+
+		if  mp3tags.Name == "" {
+			log.Println("Song tag missing for " + mfile.fullpath)
+			continue
+		}
+		
 		mfile.artist = mp3tags.Artist
 		mfile.title = mp3tags.Name
 
@@ -188,22 +213,6 @@ func main() {
 			stream <- buffer
 		}
 
+		fd.Close()
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
