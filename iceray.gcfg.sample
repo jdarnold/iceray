@@ -1,0 +1,12 @@
+# information about the Shoutcast / Icecast server
+[server]
+hostname = localhost # shoutcast server name
+port = 8000 # shoutcast server source port
+user = source # source user name
+password = p # source password
+mount = /stream.mp3 # mountpoint
+
+# List music folders
+[music]
+folder = /home/jdarnold/Music/The Bongos
+folder = /home/jdarnold/Music/Richard Barone

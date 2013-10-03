@@ -9,8 +9,9 @@ import (
 	"path"
 	"strings"
 	"log"
-	"github.com/jdarnold/go-id3/src/id3"
-	"github.com/jdarnold/go-libshout"
+	"github.com/ascherkus/go-id3/src/id3"
+	"github.com/systemfreund/go-libshout"
+	"code.google.com/p/gcfg"
 )
 
 type SongRecord struct {
@@ -21,13 +22,19 @@ type SongRecord struct {
 }
 
 // Setup some command line flags
-var (
-    hostname = flag.String("host", "amazingdev.com", "Vehement Flame Radio")
-    port = flag.Uint("port", 8000, "shoutcast server source port")
-    user = flag.String("user", "source", "source user name")
-    password = flag.String("password", "", "source password")
-    mount = flag.String("mountpoint", "", "mountpoint")
-) 
+type Config struct  {
+	Server struct {
+		Hostname string
+		Port uint
+		User string
+		Password string
+		Mount string
+	}
+
+	Music struct {
+		Folder []string
+	}
+}
 
 func sdir(folder string, addfilechannel chan SongRecord) {
 	searchdir, eopen := os.Open(folder)
@@ -75,16 +82,35 @@ func sdir(folder string, addfilechannel chan SongRecord) {
 }
 
 func main() {
-	folder := "."
-
-	if len(os.Args) > 1 {
-		folder = os.Args[1]
+	var cfg Config
+	err := gcfg.ReadFileInto(&cfg,"iceray.gcfg")
+	if err != nil {
+		panic("Config error: "+err.Error())
+		
 	}
+
+	log.Println(cfg.Server)
+	log.Println(cfg.Music)
 	
 	addfilechannel := make(chan SongRecord, 10)
 	defer close(addfilechannel)
 
-	go sdir(folder,addfilechannel)
+	for folderIdx :=  range(cfg.Music.Folder) {
+		go sdir(cfg.Music.Folder[folderIdx],addfilechannel)
+	}
+
+	mountpoint := cfg.Server.Mount
+	if mountpoint[0] != '/' {
+		mountpoint = "/" + mountpoint
+	}
+
+	log.Println(cfg.Server)
+
+	hostname := flag.String("host", cfg.Server.Hostname, "shoutcast server name")
+	port := flag.Uint("port", cfg.Server.Port, "shoutcast server source port")
+	user := flag.String("user", cfg.Server.User, "source user name")
+	password := flag.String("password", cfg.Server.Password, "source password")
+	mount := flag.String("mountpoint", mountpoint, "mountpoint")
 
 	flag.Parse()
 
@@ -104,7 +130,7 @@ func main() {
 	// Create a channel where we can send the data
 	stream, err := s.Open()
 	if err != nil {
-		panic(err)
+		panic("Error opening server " + cfg.Server.Hostname + " : " + err.Error())
 	}
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
