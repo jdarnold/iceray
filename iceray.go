@@ -134,8 +134,6 @@ func main() {
 	songCount := len(songs)
 	log.Printf("Found %d songs", songCount)
 	
-	log.Println(songs)
-	
 	// Now shuffle it
 	for i := range(songs) {
 		j := i + randGen.Intn(songCount-i)
@@ -144,8 +142,6 @@ func main() {
 		songs[j] = tmp
 	}
 
-	log.Println(songs)
-	
 	mountpoint := cfg.Server.Mount
 	if mountpoint[0] != '/' {
 		mountpoint = "/" + mountpoint
@@ -182,10 +178,9 @@ func main() {
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
 	
-	
 	for {
 		if len(songs) == 0 {
-			break
+v			break
 		}
 
 		songIdx := randGen.Intn(len(songs))
