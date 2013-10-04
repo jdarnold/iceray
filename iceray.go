@@ -36,13 +36,19 @@ type Config struct  {
 		Mount string
 	}
 
-	Music map[string] *struct {
-		Playlist string
+	Music struct {
 		Shuffle bool
+		Loop bool
+	}
+	
+	Playlist map[string] *struct {
+		Path string
 		Subdirs bool
 		Rootfolder string
 	}
 }
+
+var IcerayCfg Config
 
 func sdir(folder string, subdirs bool, addfilechannel chan SongRecord, w *sync.WaitGroup) {
 	defer w.Done()
@@ -99,8 +105,7 @@ func main() {
 	}
 	configPath := usr.HomeDir + "/.iceray.gcfg"
 
-	var cfg Config
-	err = gcfg.ReadFileInto(&cfg,configPath)
+	err = gcfg.ReadFileInto(&IcerayCfg,configPath)
 	if err != nil {
 		log.Fatal("Error opening config file: "+err.Error())
 	}
@@ -109,19 +114,19 @@ func main() {
 
 	var w sync.WaitGroup
 
-	for _, musicRec :=  range(cfg.Music) {
-		fext := strings.ToLower(filepath.Ext(musicRec.Playlist))
+	for _, playlistRec :=  range(IcerayCfg.Playlist) {
+		fext := strings.ToLower(filepath.Ext(playlistRec.Path))
 		if fext == ".xspf" {
 			// process XML playlist file
 		} else if fext == ".m3u" {
 			// process m3u playlist file
 		} else {
 			w.Add(1)
-			go sdir(musicRec.Playlist,musicRec.Subdirs, addfilechannel, &w)
+			go sdir(playlistRec.Path, playlistRec.Subdirs, addfilechannel, &w)
 		}
 	}
 
-	// wait for song search to finish up
+	// wait for song file search to finish up
 	w.Wait()
 	close(addfilechannel)
 	
@@ -134,21 +139,17 @@ func main() {
 	songCount := len(songs)
 	fmt.Printf("Found %d songs:\n", songCount)
 	
-	for i := range(songs) {
-		fmt.Println(" " + songs[i].fullpath)
-	}
-
-	mountpoint := cfg.Server.Mount
+	mountpoint := IcerayCfg.Server.Mount
 	if mountpoint[0] != '/' {
 		mountpoint = "/" + mountpoint
 	}
 
-	fmt.Printf("Connecting to %s:%d\n",cfg.Server.Hostname, cfg.Server.Port)
+	fmt.Printf("Connecting to %s:%d\n",IcerayCfg.Server.Hostname, IcerayCfg.Server.Port)
 	
-	hostname := flag.String("host", cfg.Server.Hostname, "shoutcast server name")
-	port := flag.Uint("port", cfg.Server.Port, "shoutcast server source port")
-	user := flag.String("user", cfg.Server.User, "source user name")
-	password := flag.String("password", cfg.Server.Password, "source password")
+	hostname := flag.String("host", IcerayCfg.Server.Hostname, "shoutcast server name")
+	port := flag.Uint("port", IcerayCfg.Server.Port, "shoutcast server source port")
+	user := flag.String("user", IcerayCfg.Server.User, "source user name")
+	password := flag.String("password", IcerayCfg.Server.Password, "source password")
 	mount := flag.String("mountpoint", mountpoint, "mountpoint")
 
 	flag.Parse()
@@ -169,17 +170,19 @@ func main() {
 	// Create a channel where we can send the data
 	stream, err := s.Open()
 	if err != nil {
-		log.Fatal("Error opening server " + cfg.Server.Hostname + " : " + err.Error())
+		log.Fatal("Error opening server " + IcerayCfg.Server.Hostname + " : " + err.Error())
 	}
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
 		
 	// do this forever, or at least until we are killed
 	for {
-		// Now (linear) shuffle it
-		for i := range(songs) {
-			j := i + randGen.Intn(songCount-i)
-			songs[i], songs[j] = songs[j], songs[i]
+		if IcerayCfg.Music.Shuffle {
+			// Now (linear) shuffle it
+			for i := range(songs) {
+				j := randGen.Intn(songCount)
+				songs[i], songs[j] = songs[j], songs[i]
+			}
 		}
 
 		for songIdx := range(songs) {
@@ -236,5 +239,19 @@ func main() {
 				stream <- buffer
 			}
 		}
+
+		if !IcerayCfg.Music.Loop {
+			break
+		}
 	}
 }
+
+
+
+
+
+
+
+
+
+
