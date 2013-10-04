@@ -180,7 +180,7 @@ func main() {
 	
 	for {
 		if len(songs) == 0 {
-v			break
+			break
 		}
 
 		songIdx := randGen.Intn(len(songs))
