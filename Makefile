@@ -1,4 +1,4 @@
-iceray: iceray.go
+iceray: iceray.go config.go shout.go
 	go build
 
 dependencies:
