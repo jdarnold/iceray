@@ -132,14 +132,16 @@ func main() {
 	}
 	
 	songCount := len(songs)
-	fmt.Printf("Found %d songs\n", songCount)
+	fmt.Printf("Found %d songs:\n", songCount)
 	
-	// Now shuffle it
+	// Now (linear) shuffle it
 	for i := range(songs) {
 		j := i + randGen.Intn(songCount-i)
-		tmp := songs[i]
-		songs[i] = songs[j]
-		songs[j] = tmp
+		songs[i], songs[j] = songs[j], songs[i]
+	}
+
+	for i := range(songs) {
+		fmt.Println(" " + songs[i].fullpath)
 	}
 
 	mountpoint := cfg.Server.Mount
@@ -178,12 +180,11 @@ func main() {
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
 	
-	for {
+	for songIdx := range(songs) {
 		if len(songs) == 0 {
 			break
 		}
 
-		songIdx := randGen.Intn(len(songs))
 		mfile := songs[songIdx]
 		
 		fd,err := os.Open(mfile.fullpath)
