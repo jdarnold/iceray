@@ -132,7 +132,7 @@ func main() {
 	}
 	
 	songCount := len(songs)
-	log.Printf("Found %d songs", songCount)
+	fmt.Printf("Found %d songs\n", songCount)
 	
 	// Now shuffle it
 	for i := range(songs) {
@@ -147,7 +147,7 @@ func main() {
 		mountpoint = "/" + mountpoint
 	}
 
-	log.Printf("Connecting to %s:%d",cfg.Server.Hostname, cfg.Server.Port)
+	fmt.Printf("Connecting to %s:%d\n",cfg.Server.Hostname, cfg.Server.Port)
 	
 	hostname := flag.String("host", cfg.Server.Hostname, "shoutcast server name")
 	port := flag.Uint("port", cfg.Server.Port, "shoutcast server source port")
@@ -187,6 +187,7 @@ func main() {
 		mfile := songs[songIdx]
 		
 		fd,err := os.Open(mfile.fullpath)
+		defer fd.Close()
 		
 		if err != nil {
 			log.Println("Problem opening: " + mfile.fullpath)
@@ -231,7 +232,5 @@ func main() {
 			// Send to shoutcast server
 			stream <- buffer
 		}
-
-		fd.Close()
 	}
 }
