@@ -134,12 +134,6 @@ func main() {
 	songCount := len(songs)
 	fmt.Printf("Found %d songs:\n", songCount)
 	
-	// Now (linear) shuffle it
-	for i := range(songs) {
-		j := i + randGen.Intn(songCount-i)
-		songs[i], songs[j] = songs[j], songs[i]
-	}
-
 	for i := range(songs) {
 		fmt.Println(" " + songs[i].fullpath)
 	}
@@ -179,59 +173,68 @@ func main() {
 	}
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
-	
-	for songIdx := range(songs) {
-		if len(songs) == 0 {
-			break
+		
+	// do this forever, or at least until we are killed
+	for {
+		// Now (linear) shuffle it
+		for i := range(songs) {
+			j := i + randGen.Intn(songCount-i)
+			songs[i], songs[j] = songs[j], songs[i]
 		}
 
-		mfile := songs[songIdx]
-		
-		fd,err := os.Open(mfile.fullpath)
-		defer fd.Close()
-		
-		if err != nil {
-			log.Println("Problem opening: " + mfile.fullpath)
-			continue
-		}
-		
-		// Read in MP3 tags
-		mp3tags := id3.Read(fd)
+		for songIdx := range(songs) {
+			if len(songs) == 0 {
+				break
+			}
 
-		if ( mp3tags == nil ) {
-			log.Println("Problems getting MP3 tags for " + mfile.fullpath)
-			continue
-		}
+			mfile := songs[songIdx]
+			
+			fd,err := os.Open(mfile.fullpath)
+			defer fd.Close()
+			
+			if err != nil {
+				log.Println("Problem opening: " + mfile.fullpath)
+				continue
+			}
+			
+			// Read in MP3 tags
+			mp3tags := id3.Read(fd)
 
-		if mp3tags.Artist == "" {
-			log.Println("Artist tag missing for " + mfile.fullpath)
-			continue
-		}
+			if ( mp3tags == nil ) {
+				log.Println("Problems getting MP3 tags for " + mfile.fullpath)
+				continue
+			}
 
-		if  mp3tags.Name == "" {
-			log.Println("Song tag missing for " + mfile.fullpath)
-			continue
-		}
-		
-		mfile.artist = mp3tags.Artist
-		mfile.title = mp3tags.Name
+			if mp3tags.Artist == "" {
+				log.Println("Artist tag missing for " + mfile.fullpath)
+				continue
+			}
 
-		track := mfile.title + " by " + mfile.artist
-		fmt.Println("Playing " + track)
+			if  mp3tags.Name == "" {
+				log.Println("Song tag missing for " + mfile.fullpath)
+				continue
+			}
+			
+			mfile.artist = mp3tags.Artist
+			mfile.title = mp3tags.Name
 
-		fd.Seek(0,0)
-		
-		// add track to the stream
-		s.UpdateMetadata( "song", track )
-		
-		for {
-			// Read from file
-			n, err := fd.Read(buffer)
-			if err != nil && err != io.EOF { panic(err) }
-			if n == 0 { break }
+			track := mfile.title + " by " + mfile.artist
+			fmt.Println("Playing " + track)
 
-			// Send to shoutcast server
-			stream <- buffer
+			fd.Seek(0,0)
+			
+			// add track to the stream
+			s.UpdateMetadata( "song", track )
+			
+			for {
+				// Read from file
+				n, err := fd.Read(buffer)
+				if err != nil && err != io.EOF { panic(err) }
+				if n == 0 { break }
+
+				// Send to shoutcast server
+				stream <- buffer
+			}
 		}
 	}
 }
