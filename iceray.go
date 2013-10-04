@@ -2,6 +2,8 @@
 package main
 
 import (
+	"time"
+	"math/rand"
 	"sync"
 	"fmt"
 	"os"
@@ -89,6 +91,8 @@ func sdir(folder string, subdirs bool, addfilechannel chan SongRecord, w *sync.W
 }
 
 func main() {
+	randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
+	
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatal( err )
@@ -117,6 +121,7 @@ func main() {
 		}
 	}
 
+	// wait for song search to finish up
 	w.Wait()
 	close(addfilechannel)
 	
@@ -125,6 +130,21 @@ func main() {
 	for mfile := range addfilechannel {
 		songs = append(songs,mfile)
 	}
+	
+	songCount := len(songs)
+	log.Printf("Found %d songs", songCount)
+	
+	log.Println(songs)
+	
+	// Now shuffle it
+	for i := range(songs) {
+		j := i + randGen.Intn(songCount-i)
+		tmp := songs[i]
+		songs[i] = songs[j]
+		songs[j] = tmp
+	}
+
+	log.Println(songs)
 	
 	mountpoint := cfg.Server.Mount
 	if mountpoint[0] != '/' {
@@ -162,9 +182,13 @@ func main() {
 	
 	buffer := make([]byte, shout.BUFFER_SIZE)
 	
-	log.Printf("Found %d songs", len(songs))
 	
-	for songIdx := range(songs) {
+	for {
+		if len(songs) == 0 {
+			break
+		}
+
+		songIdx := randGen.Intn(len(songs))
 		mfile := songs[songIdx]
 		
 		fd,err := os.Open(mfile.fullpath)
