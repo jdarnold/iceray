@@ -1,5 +1,5 @@
 // iceray project main.go
-package iceray
+package main
 
 import (
 	"time"

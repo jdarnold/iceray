@@ -1,4 +1,4 @@
-package iceray
+package main
 
 import (
 	"os/user"
