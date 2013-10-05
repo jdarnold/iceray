@@ -56,13 +56,12 @@ func main() {
 	// maybe loop
 	for {
 		if len(songs) == 0 {
-			// populate songs
+			// (re)populate songs
 			songs = getSongs()
 	
 			songCount := len(songs)
-			
 			if songCount == 0 {
-				log.Fatal("No songs found!")
+				log.Fatal("No music found!")
 			}
 	
 			fmt.Printf("Found %d songs:\n", songCount)

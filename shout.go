@@ -61,7 +61,6 @@ func shoutSong( sr SongRecord, buffer []byte ) {
 	fmt.Println("Playing " + track)
 	s.UpdateMetadata( "song", track )
 	
-	return 
 	for {
 		// Read from file
 		n, err := fd.Read(buffer)
