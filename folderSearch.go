@@ -23,6 +23,18 @@ func folderSearch(folder string, subdirs bool, addfilechannel chan SongRecord, w
 		return
 	}
 
+	// get mod time for later check
+	fi, err := os.Stat(folder)
+	if err != nil {
+		log.Println("Problems getting modtime for " + folder)
+		return
+	}
+
+	var playlist Playlist
+	playlist.path = folder
+	playlist.modtime = fi.ModTime()
+	playlist.subdirs = subdirs
+	Playlists = append(Playlists, &playlist)
 	for i := range homefiles {
 		fname := homefiles[i].Name()
 		if fname[0] == '.' {
@@ -36,7 +48,7 @@ func folderSearch(folder string, subdirs bool, addfilechannel chan SongRecord, w
 			continue
 		}
 
-		if !strings.Contains(fname,".mp3") {
+		if !strings.HasSuffix(fname,".mp3") {
 			continue
 		}
 			
@@ -53,4 +65,6 @@ func folderSearch(folder string, subdirs bool, addfilechannel chan SongRecord, w
 		addfilechannel <- sr
 	}
 }
+
+
 

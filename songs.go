@@ -7,6 +7,7 @@ import (
 	"github.com/ascherkus/go-id3/src/id3"
 	"os"
 	"log"
+	"time"
 )
 
 type SongRecord struct {
@@ -16,12 +17,22 @@ type SongRecord struct {
 	artist string
 }
 
+type Playlist struct {
+	path string
+	modtime time.Time
+	subdirs bool
+}
+
+var Playlists []*Playlist
+
 func getSongs() []SongRecord {
 	addfilechannel := make(chan SongRecord, 100)
+
 
 	var w sync.WaitGroup
 
 	for _, playlistRec :=  range(IcerayCfg.Playlist) {
+
 		fext := strings.ToLower(filepath.Ext(playlistRec.Path))
 		if fext == ".xspf" {
 			// process XML playlist file
