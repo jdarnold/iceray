@@ -3,7 +3,9 @@ iceray
 
 Icecast/Shoutcast client. Sends MP3 files to the specified server, via the Shoutcast protocol
 
-Copy icecast.gcfg.sample to icecast.gcfg, edit parameters to reflect your server and folders, then run it.
+Copy icecast.gcfg.sample to $HOME/.icecast.gcfg and edit parameters to reflect your server and music sources. 
+
+Then simply run it:
 
 ```
 $ ./icecast
