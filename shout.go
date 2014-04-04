@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"flag"
 	"log"
 	"os"
 	"io"
@@ -14,28 +13,15 @@ var s shout.Shout
 var stream chan <- []byte
 
 func setupShout() {
-	mountpoint := IcerayCfg.Server.Mount
-	if mountpoint[0] != '/' {
-		mountpoint = "/" + mountpoint
-	}
-
-	fmt.Printf("Connecting to %s:%d\n",IcerayCfg.Server.Hostname, IcerayCfg.Server.Port)
+	fmt.Printf("Connecting to %s:%d\n",*Hostname, *Port)
 	
-	hostname := flag.String("host", IcerayCfg.Server.Hostname, "shoutcast server name")
-	port := flag.Uint("port", IcerayCfg.Server.Port, "shoutcast server source port")
-	user := flag.String("user", IcerayCfg.Server.User, "source user name")
-	password := flag.String("password", IcerayCfg.Server.Password, "source password")
-	mount := flag.String("mountpoint", mountpoint, "mountpoint")
-
-	flag.Parse()
-
 	// Setup libshout parameters
 	s = shout.Shout{
-		Host:     *hostname,
-		Port:     *port,
-		User:     *user,
-		Password: *password,
-		Mount:    *mount,
+		Host:     *Hostname,
+		Port:     *Port,
+		User:     *Username,
+		Password: *Password,
+		Mount:    *Mount,
 		Format:   shout.FORMAT_MP3,
 		Protocol: shout.PROTOCOL_HTTP,
 	}
@@ -44,7 +30,7 @@ func setupShout() {
 	var err error
 	stream, err = s.Open()
 	if err != nil {
-		log.Fatal("Error opening server " + IcerayCfg.Server.Hostname + " : " + err.Error())
+		log.Fatal("Error opening server " + *Hostname + " : " + err.Error())
 	}
 }
 

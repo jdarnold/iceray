@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"time"
+	"flag"
 	
 	"github.com/systemfreund/go-libshout"
 )
@@ -40,9 +42,38 @@ func isPlaylistModified( ) bool {
 	return rv
 }
 
+var DEFAULT_HOSTNAME="localhost"
+var DEFAULT_PORT uint =8000
+var DEFAULT_USERNAME="source"
+var DEFAULT_PASSWORD=""
+var DEFAULT_MOUNTPOINT="/steam.mp3"
+
+var Hostname, Username, Password, Mount, ConfigPath *string
+var Port *uint
+
+func parseCommandline() {
+	Hostname = flag.String("host", DEFAULT_HOSTNAME, "shoutcast server name")
+	Port = flag.Uint("port", DEFAULT_PORT, "shoutcast server source port")
+	Username = flag.String("user", DEFAULT_USERNAME, "source user name")
+	Password = flag.String("password", DEFAULT_PASSWORD, "source password")
+	Mount = flag.String("mountpoint", DEFAULT_MOUNTPOINT, "server mountpoint")
+
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal( err )
+	}
+	cpath := usr.HomeDir + "/.iceray.gcfg"
+	ConfigPath = flag.String("config", cpath, "full path to config file")
+
+	flag.Parse()
+}
+
 func main() {
+
 	randGen = rand.New(rand.NewSource(time.Now().UnixNano()))
 	
+	parseCommandline()
+		
 	readConfig()
 	
 	setupShout()
@@ -69,7 +100,7 @@ func main() {
 
 		for songIdx := range(songs) {
 			if isPlaylistModified() {
-				// empty songs to go get new list
+				// empty songs and go get new list
 				fmt.Println("Getting new songs")
 				songs = []SongRecord{}
 				break
